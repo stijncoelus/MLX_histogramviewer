@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+plotly
+st_aggrid
+json
+base64
+uuid
+re
