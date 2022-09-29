@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express  as ff
+import plotly.figure_factory  as ff
 
 ###################################
 from st_aggrid import AgGrid
@@ -161,8 +161,8 @@ st.text("")
 
 
 for col in options:
-    labels = [f"CS{cs}" for cs in range(1, data['site number'].max() + 1)]
-    fig = ff.histogram(data, x=col, color='BIN', pattern_shape="site number")
+    #labels = [f"CS{cs}" for cs in range(1, data['site number'].max() + 1)]
+    fig = ff.create_distplot([data[col].dropna()], group_labels=[col], bin_size=[(float(limits[col][1])-float(limits[col][0]))/100])
     fig.add_vline(x=float(limits[col][1]), line=dict(
         color="LightSeaGreen",
         width=4,
