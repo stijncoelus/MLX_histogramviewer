@@ -174,7 +174,8 @@ for col in options:
         dash="dashdot",
     ))
     fig.update_layout(
-        paper_bgcolor="lightgrey"
+        paper_bgcolor="lightgrey",
+        plot_bgcolor ="white"
     )
     st.plotly_chart(fig)
 
