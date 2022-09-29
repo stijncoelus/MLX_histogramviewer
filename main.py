@@ -24,28 +24,38 @@ def is_float (element: any) -> bool:
 
 def MSA_parameter (df, lim):
 
-    listdf = []
+    listdf = pd.DataFrame()
     for dfcol, limcol in zip(df, lim):
         if not is_float(lim[limcol][1]) or not np.issubdtype(df[dfcol].dtype, np.number):
-            print("skipped " + dfcol + " where the unit is " + str(lim[limcol][2]) + " and lower spec is : "
-                  + str(lim[limcol][0]) + " and higher is :" + str(lim[limcol][1]))
+            #print("skipped " + dfcol + " where the unit is " + str(lim[limcol][2]) + " and lower spec is : "
+            #     + str(lim[limcol][0]) + " and higher is :" + str(lim[limcol][1]))
             continue
-        returndf = dict()
-        returndf['name'] = dfcol
-        returndf['max'] = float(lim[limcol][1])
-        returndf['min'] = float(lim[limcol][0])
-        returndf['mean'] = df[dfcol].mean()
-        returndf['std'] = df[dfcol].std()
-        #returndf['std'] = 9999999999999999999999 # safety deviding by 0 error
-        returndf['cpkl'] = (returndf['mean'] - returndf['min'])/(3*returndf['std'])
-        returndf['cpkh'] = (returndf['max'] - returndf['mean'])/(3*returndf['std'])
-        returndf['cpk'] = min(returndf['cpkl'], returndf['cpkh'])
-        returndf['cp'] = (returndf['max']-returndf['min'])/6*returndf['std']
-        if returndf['cpk'] < 1.63:
-            returndf['issue'] = True
-        else:
-            returndf['issue'] = False
-        listdf.append(returndf)
+        maximum = float(lim[limcol][1])
+        minimum = float(lim[limcol][0])
+        mean = df[dfcol].mean()
+        std = df[dfcol].std()
+        if std <= 0 or pd.isna(std):
+            continue
+        cpkl = (mean - minimum)/(3*std)
+        cpkh = (maximum - mean)/(3*std)
+        cpk = min(cpkl, cpkh)
+        cp = (maximum-minimum)/6*std
+        issue = False
+        if cpk < 1.63:
+            issue = True
+        row = pd.DataFrame(data={'name': [dfcol, ],
+                    'max':  [maximum, ],
+                    'min':  [minimum, ],
+                    'mean': [mean, ],
+                    'std': [std, ],
+                    'cpkl': [cpkl, ],
+                    'cpkh': [cpkh, ],
+                    'cpk': [cpk, ],
+                    'cp': [cp, ],
+                    'issue': [issue, ]
+                    })
+
+        listdf = pd.concat([listdf, row], ignore_index=True)
     return listdf
 
 
@@ -139,11 +149,13 @@ st.success(
         💡 Tip! Hold the shift key when selecting rows to select multiple rows at once!
         """
 )
+RemoveFails = st.checkbox('Only BIN1')
+
+if RemoveFails:
+    data = data[data['BIN'] < 200]
 listMSA = MSA_parameter(data[data.columns[100:]], limits[limits.columns[100:]])
-paramwithissue = []
-for param in listMSA:
-    if param['issue']:
-        paramwithissue.append(param['name'])
+st.dataframe(listMSA)
+paramwithissue = listMSA[listMSA['issue']]['name']
 
 options = st.multiselect("Select the Parameter name for the histogram", paramwithissue)
 Parameters = ['site number','D_ChipId_ID','BIN','msa_step'] + options
@@ -155,9 +167,11 @@ df = data[Parameters]
 st.subheader("Selected Parameter histogram will appear below 👇 ")
 st.text("")
 
+
 #st.table(df)
 
 st.text("")
+
 
 
 for col in options:
@@ -188,12 +202,12 @@ with c29:
     CSVButton = download_button(
         df,
         "File.csv",
-        "Download to CSV",
+        "Download Selected",
     )
 
 with c30:
     CSVButton = download_button(
-        df,
+        listMSA,
         "File.csv",
-        "Download to TXT",
+        "Download MSA",
     )
